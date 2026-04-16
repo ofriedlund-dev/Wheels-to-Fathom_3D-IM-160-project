@@ -7,15 +7,18 @@ using UnityEngine.SceneManagement;
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] private PlayerData howardData;
-    private InputAction howardMove;
+    [SerializeField] private InputAction howardMove;
     private InputAction howardTurbo;
     private InputAction retry;
     private InputAction rotationReset;
+    private InputAction launchAction; // Input action for launching the player
     private Rigidbody howardRB;
     [SerializeField] private float forwardSpeed;
     [SerializeField] private float turnSpeed;
     [SerializeField] private float sprintMultiplier;
     [SerializeField] private float airLeakRate;
+    [SerializeField] private float launchForce = 25000f;
+    [SerializeField] private bool isLaunching = false; // Flag to track if the player is currently being launched
     private float forwardValue;
     private float turnValue;
     private float sprintValue;
@@ -24,12 +27,14 @@ public class PlayerController : MonoBehaviour
     private float lastFillPercentage = 100;
     private float lastDullPercentage = 0;
     private bool grounded = false;
+    public bool Grounded { get { return grounded; } set { grounded = value; } }
     /// <summary>
     /// Sets up the moveand sprint actions
     /// </summary>
     void Start()
     {
         SceneManager.sceneUnloaded += OnSceneUnloaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
         howardRB = GetComponent<Rigidbody>();
         howardMove = InputSystem.actions.FindAction("Move");
         howardMove.performed += HowardMovePerformed;
@@ -41,6 +46,9 @@ public class PlayerController : MonoBehaviour
         retry.performed += RetryPerformed;
         rotationReset = InputSystem.actions.FindAction("Rotation Reset");
         rotationReset.performed += RotationResetetryPerformed;
+        launchAction = InputSystem.actions.FindAction("Launch");
+        launchAction.performed += LaunchActionPerformed;
+        launchAction.canceled += LaunchActionCanceled;
         isMoving = false;
         isSprinting = false;
         sprintValue = 1.0f;
@@ -52,6 +60,21 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogError("Howard does not have his data =(.");
         }
+    }
+
+    private void OnSceneLoaded(Scene arg0, LoadSceneMode arg1)
+    {
+        // Find the left and right wheel objects in the scene
+    }
+
+    private void LaunchActionPerformed(InputAction.CallbackContext context)
+    {
+        isLaunching = true;
+    }
+
+    private void LaunchActionCanceled(InputAction.CallbackContext context)
+    {
+        isLaunching = false;
     }
 
     private void RotationResetetryPerformed(InputAction.CallbackContext context)
@@ -114,7 +137,7 @@ public class PlayerController : MonoBehaviour
             forwardValue = context.ReadValue<Vector2>().y;
             turnValue = context.ReadValue<Vector2>().x;
             isMoving = true;
-            
+
         }
         else
         {
@@ -128,6 +151,7 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     void Update()
     {
+        Debug.Log("Grounded: " + grounded);
         Vector3 moveDirection = transform.forward * forwardValue * forwardSpeed * sprintValue;
         if (grounded)
         {
@@ -135,7 +159,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            howardRB.linearVelocity = howardRB.linearVelocity;
+            howardRB.linearVelocity = new Vector3(moveDirection.x / 2, howardRB.linearVelocity.y, moveDirection.z / 2);
         }
         //transform.Translate(Vector3.forward * forwardValue * forwardSpeed * Time.deltaTime * sprintValue);
         //transform.Translate(Vector3.right * horizontalValue * turnSpeed * Time.deltaTime);
@@ -202,13 +226,26 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
-    void OnCollisionStay(Collision collision)
+    void OnTriggerStay(Collider collider)
     {
-        if (collision.gameObject.tag == "Ground") grounded = true;
+        if (collider.gameObject.tag == "Ground" || collider.gameObject.tag == "WheelJack") grounded = true;
+        if (collider.gameObject.CompareTag("WheelJack"))
+        {
+            Debug.Log("Player is colliding with the wheel jack.");
+            Debug.Log("Is launching: " + isLaunching);
+            if (isLaunching)
+            {
+                Debug.Log("Applying launch force to the player.");
+                howardRB.AddForce(new Vector3(0, launchForce, 0), ForceMode.Impulse);
+                collider.gameObject.GetComponentInParent<Animator>().SetTrigger("launch");
+                isLaunching = false; // Reset the launching flag after applying the force
+            }
+            //collision.gameObject.GetComponentInParent<Animator>().ResetTrigger("launch");
+        }
     }
-    void OnCollisionExit(Collision collision)
+    void OnTriggerExit(Collider collider)
     {
-        if (collision.gameObject.tag == "Ground") grounded = false;
+        if (collider.gameObject.tag == "Ground" || collider.gameObject.tag == "WheelJack") grounded = false;
     }
     void OnTriggerEnter(Collider collider)
     {
@@ -224,5 +261,14 @@ public class PlayerController : MonoBehaviour
                 Debug.Log("New Checkpoint Set");
             }
         }
+    }
+    void OnDestroy()
+    {
+        howardMove.performed -= HowardMovePerformed;
+        howardMove.canceled -= HowardMoveCanceled;
+        howardTurbo.performed -= HowardTurboPerformed;
+        howardTurbo.canceled -= HowardTurboCanceled;
+        retry.performed -= RetryPerformed;
+        rotationReset.performed -= RotationResetetryPerformed;
     }
 }

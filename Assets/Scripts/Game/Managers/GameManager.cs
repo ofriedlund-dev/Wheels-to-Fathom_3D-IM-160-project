@@ -8,12 +8,19 @@ public class GameManager : MonoBehaviour
     public static GameManager gmInstance;
     private int score;
     [SerializeField] private int bolts;
-    public int Bolts { get{return bolts;} set{bolts = value;} }
+    public int Bolts { get { return bolts; } set { bolts = value; } }
     private int scoreBonus;
     private GameObject howard;
     public GameObject spawnPoint;
     private GameObject startPoint;
     private GameObject GameOverScreen;
+    private GameObject GameWinScreen;
+    private GameObject menuScreen1;
+    private GameObject menuScreen2;
+    private bool pinFound = false;
+    public bool PinFound { get { return pinFound; } set { pinFound = value; } }
+    private bool playerWon = false;
+    public bool PlayerWon { get { return playerWon; } set { playerWon = value; } }
     [SerializeField] private TextMeshProUGUI airGaugeText;
     [SerializeField] private TextMeshProUGUI dullnessText;
     [SerializeField] private TextMeshProUGUI boltCounterText;
@@ -23,11 +30,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int lives;
     [SerializeField] private int startingLives;
     [SerializeField] private int sceneIndex;
+    [SerializeField] private int menuIndex;
+    public int MenuIndex { get { return menuIndex; } set { menuIndex = value; } }
     [SerializeField] private bool howardCanMove = true;
     [SerializeField] private float maxBoltDistance;
     [SerializeField] private float minBoltDistance;
 
-    public bool HowardCanMove { get{return howardCanMove;} set{howardCanMove = value;} }
+    public bool HowardCanMove { get { return howardCanMove; } set { howardCanMove = value; } }
     void Awake()
     {
         if (gmInstance == null)
@@ -51,43 +60,70 @@ public class GameManager : MonoBehaviour
             startPoint = GameObject.Find("StartPoint");
             howard.transform.position = spawnPoint.transform.position;
             GameOverScreen = GameObject.Find("Game Over Screen");
+            GameWinScreen = GameObject.Find("Win Screen");
             airGaugeText = GameObject.Find("Air Gauge").GetComponent<TextMeshProUGUI>();
             dullnessText = GameObject.Find("Dullness Meter").GetComponent<TextMeshProUGUI>();
             boltCounterText = GameObject.Find("Bolt Counter").GetComponent<TextMeshProUGUI>();
             spareTiresText = GameObject.Find("Lives").GetComponent<TextMeshProUGUI>();
             holeCounterText = GameObject.Find("Holes").GetComponent<TextMeshProUGUI>();
             GameOverScreen.SetActive(false);
+            GameWinScreen.SetActive(false);
             HowardCanMove = true;
             sceneIndex = arg0.buildIndex;
+        }
+        else
+        {
+            menuScreen1 = GameObject.Find("Main");
+            menuScreen2 = GameObject.Find("Level");
+            menuScreen1.SetActive(true);
+            menuScreen2.SetActive(false);
         }
     }
 
     void Update()
     {
-        float playerDullness = howard.GetComponent<PlayerData>().Dullness;
-        float playerFullness = howard.GetComponent<PlayerData>().Fullness;
-        float playerHoles = howard.GetComponent<PlayerData>().Holes;
-        if (playerDullness <= 25)
+        if (howard != null)
         {
-            scoreBonus = 10000;
+            float playerDullness = howard.GetComponent<PlayerData>().Dullness;
+            float playerFullness = howard.GetComponent<PlayerData>().Fullness;
+            float playerHoles = howard.GetComponent<PlayerData>().Holes;
+            if (playerDullness <= 25)
+            {
+                scoreBonus = 10000;
+            }
+            else if (playerDullness <= 50)
+            {
+                scoreBonus = 7500;
+            }
+            else if (playerDullness <= 75)
+            {
+                scoreBonus = 5000;
+            }
+            else
+            {
+                scoreBonus = 2500;
+            }
+            airGaugeText.text = "Air Fill - " + playerFullness + "%";
+            boltCounterText.text = "Bolts - " + bolts;
+            spareTiresText.text = "Spare Tires - " + lives;
+            dullnessText.text = "Dullness - " + playerDullness + "%";
+            holeCounterText.text = "Holes - " + playerHoles;
+            if (playerWon)
+            {
+                HowardCanMove = false;
+                GameWinScreen.SetActive(true);
+            }
         }
-        else if (playerDullness <= 50)
+        if (menuIndex == 0)
         {
-            scoreBonus = 7500;
-        }
-        else if (playerDullness <= 75)
-        {
-            scoreBonus = 5000;
+            menuScreen1.SetActive(true);
+            menuScreen2.SetActive(false);
         }
         else
         {
-            scoreBonus = 2500;
+            menuScreen1.SetActive(false);
+            menuScreen2.SetActive(true);
         }
-        airGaugeText.text = "Air Fill - " + playerFullness + "%";
-        boltCounterText.text = "Bolts - " + bolts;
-        spareTiresText.text = "Spare Tires - " + lives;
-        dullnessText.text = "Dullness - " + playerDullness + "%";
-        holeCounterText.text = "Holes - " + playerHoles;
     }
     public void LoseLife()
     {
@@ -104,11 +140,17 @@ public class GameManager : MonoBehaviour
             scoreBonus = 0;
             howard.GetComponent<PlayerData>().ResetData();
             HowardCanMove = false;
+            GameObject.Find("Left Wheel").transform.localScale = new Vector3(0.0125f, 0.0125f, 0.0125f);
+            GameObject.Find("Right Wheel").transform.localScale = new Vector3(0.0125f, 0.0125f, 0.0125f);
             GameOverScreen.SetActive(true);
             spawnPoint.transform.position = startPoint.transform.position;
             spawnPoint.transform.rotation = startPoint.transform.rotation;
         }
-        
+
+    }
+    public void AddLife()
+    {
+        lives++;
     }
     public void Retry()
     {
@@ -125,8 +167,8 @@ public class GameManager : MonoBehaviour
             {
                 float x = howard.transform.position.x + Random.Range(minBoltDistance, maxBoltDistance);
                 float y = howard.transform.position.y + Random.Range(0, maxBoltDistance);
-                float z = howard.transform.position.z +Random.Range(minBoltDistance, maxBoltDistance);
-                spawnBolts.Add(Instantiate(boltPrefab, new Vector3(x,y,z), Quaternion.identity));
+                float z = howard.transform.position.z + Random.Range(minBoltDistance, maxBoltDistance);
+                spawnBolts.Add(Instantiate(boltPrefab, new Vector3(x, y, z), Quaternion.identity));
             }
         }
         Bolts = 0;

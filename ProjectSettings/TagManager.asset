@@ -10,6 +10,8 @@ TagManager:
   - Checkpoint
   - Bolt
   - Ground
+  - WheelJack
+  - Wheel
   layers:
   - Default
   - TransparentFX
