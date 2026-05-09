@@ -1,3 +1,11 @@
+/*****************************************************************************
+// File Name : Player Data.cs
+// Author : Owen M. Friedlund
+// Creation Date : February 12, 2026
+//
+// Brief Description : This is a document that holds the code for the PlayerData class,
+// which is used to store the player's stats and information
+*****************************************************************************/
 using UnityEngine;
 
 public class PlayerData : MonoBehaviour
@@ -66,11 +74,17 @@ public class PlayerData : MonoBehaviour
             }
         }
     }
-
+    /// <summary>
+    /// This is a function that displays the player's stats in a readable format
+    /// </summary>
+    /// <returns></returns>
     public string DisplayPlayerInfo()
     {
         return $"Dullness: {Dullness} \nFullness: {Fullness}\nPunctured: {Punctured}\nHoles: {Holes}";
     }
+    /// <summary>
+    /// This is a function that resets the player's stats to their default values
+    /// </summary>
     public void ResetData()
     {
         Dullness = 0;

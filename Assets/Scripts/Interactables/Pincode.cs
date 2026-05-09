@@ -1,8 +1,21 @@
+/*****************************************************************************
+// File Name : Pincode.cs
+// Author : Owen M. Friedlund
+// Creation Date : April 15, 2026
+//
+// Brief Description : This is a document that holds the code for the Pincode class,
+// which represents the pincode that the player can interact with in the game
+*****************************************************************************/
 using UnityEngine;
 
 public class Pincode : BaseInteractable
 {
     public Pincode() : base(true) { }
+    /// <summary>
+    /// This function is called when the player collides with the pincode object,
+    /// and it checks if the colliding object is the player
+    /// </summary>
+    /// <param name="collision"></param>
     void OnCollisionStay(Collision collision)
     {
         if (collision.gameObject.tag == "Player")
@@ -10,5 +23,13 @@ public class Pincode : BaseInteractable
             GameManager.gmInstance.PinFound = true;
             Use();
         }
+    }
+    /// <summary>
+    /// This function is called every frame, and it rotates the pincode object around the y-axis
+    /// to make it visually appealing
+    /// </summary>
+    void Update()
+    {
+        this.transform.Rotate(0, 0.5f, 0);
     }
 }

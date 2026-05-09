@@ -12,6 +12,8 @@ TagManager:
   - Ground
   - WheelJack
   - Wheel
+  - Key
+  - Killbox
   layers:
   - Default
   - TransparentFX
